@@ -5,34 +5,34 @@ module GameOfLife (
     ) where
 
 import qualified Data.Map as M
-import Data.List
+import qualified Data.Set as S
 
-data NeighboringCell = NeighboringCell Int Int deriving (Show, Eq, Ord)
-data LivingCell = LivingCell Int Int deriving (Show, Eq)
-data Game = Game [LivingCell] deriving Show
+data Game = Game (S.Set LivingCell) deriving Show
+data LivingCell = LivingCell Int Int deriving (Show, Eq, Ord)
+data NeighboringCell = NeighboringCell Int Int deriving (Eq, Ord)
 type LivingNeighborCounts = M.Map NeighboringCell Int
 
 newGame :: Game
-newGame = Game []
+newGame = Game S.empty
 
 step :: Game -> Game
 step (Game cells) = Game newLivingCells
-    where allNeighbors = concat $ map neighborsOf cells
+    where allNeighbors = concat $ S.map neighborsOf cells
           neighborCounts = countNeighbors allNeighbors
           newLivingCells = M.foldMapWithKey (applyRules cells) neighborCounts
 
 setAlive :: Int -> Int -> Game -> Game
-setAlive x y (Game cells) = Game $ nub $ (LivingCell x y):cells
+setAlive x y (Game cells) = Game $ S.insert (LivingCell x y) cells
 
-applyRules :: [LivingCell] -> NeighboringCell -> Int -> [LivingCell]
+applyRules :: S.Set LivingCell -> NeighboringCell -> Int -> S.Set LivingCell
 applyRules cells neighbor numberOfNeighbors =
     if (neighborIsAlive && (numberOfNeighbors == 2 || numberOfNeighbors == 3))
        || (neighborIsNotAlive && numberOfNeighbors == 3)
     then
-        [LivingCell x y]
+        S.insert (LivingCell x y) S.empty
     else
-        []
-    where neighborIsAlive = (LivingCell x y) `elem` cells
+        S.empty
+    where neighborIsAlive = (LivingCell x y) `S.member` cells
           neighborIsNotAlive = not neighborIsAlive
           NeighboringCell x y = neighbor
 
