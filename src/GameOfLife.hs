@@ -23,7 +23,7 @@ step :: Game -> Game
 step (Game cells) = Game newLivingCells
     where allNeighbors = concat $ S.map neighborsOf cells
           neighborCounts = countNeighbors allNeighbors
-          newLivingCells = M.foldMapWithKey (applyRules cells) neighborCounts
+          newLivingCells = bringToLife $ M.keys $ M.filterWithKey (willLive cells) neighborCounts
 
 neighborsOf :: LivingCell -> [NeighboringCell]
 neighborsOf (LivingCell x y) =
@@ -37,14 +37,12 @@ countNeighbors = foldl increment M.empty
                                  Nothing -> M.insert cell 1 m
                                  Just count -> M.insert cell (count + 1) m
 
-applyRules :: S.Set LivingCell -> NeighboringCell -> Int -> S.Set LivingCell
-applyRules cells neighbor numberOfNeighbors =
-    if (neighborIsAlive && (numberOfNeighbors == 2 || numberOfNeighbors == 3))
-       || (not neighborIsAlive && numberOfNeighbors == 3)
-    then
-        S.insert (LivingCell x y) S.empty
-    else
-        S.empty
-    where neighborIsAlive = (LivingCell x y) `S.member` cells
-          NeighboringCell x y = neighbor
+willLive :: S.Set LivingCell -> NeighboringCell -> Int -> Bool
+willLive cells neighbor neighborCount =
+    (wasAlive && (neighborCount == 2 || neighborCount == 3))
+       || (not wasAlive && neighborCount == 3)
+    where NeighboringCell x y = neighbor
+          wasAlive = (LivingCell x y) `S.member` cells
 
+bringToLife :: [NeighboringCell] -> S.Set LivingCell
+bringToLife neighbors = S.fromList $ map (\(NeighboringCell x y) -> LivingCell x y) neighbors
